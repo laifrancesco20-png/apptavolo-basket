@@ -469,6 +469,10 @@ function parseCSVRoster(csv) {
     const parts = line.split(delimiter).map(s => s.trim()).filter(s => s !== '');
     if (parts.length >= 2) {
       const teamName = parts[0];
+      // Salta le righe di intestazione (es: Nome squadra, Team, ecc.)
+      if (teamName.toLowerCase().startsWith('nome') || teamName.toLowerCase() === 'team') {
+        return;
+      }
       teamsDB[teamName] = parts.slice(1);
     }
   });
