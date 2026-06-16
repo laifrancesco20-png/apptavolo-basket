@@ -6,15 +6,8 @@
 <title>Risultati Torneo - Live</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-  import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
-  window.firebaseApp = initializeApp;
-  window.firebaseDb = getDatabase;
-  window.dbRef = ref;
-  window.dbOnValue = onValue;
-  window.dbGet = get;
-</script>
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-database-compat.js"></script>
 <style>
   body { 
     font-family: 'Outfit', sans-serif; 
@@ -192,14 +185,14 @@ function initFirebase() {
   }
   
   try {
-    const app = window.firebaseApp(firebaseConfig);
-    db = window.firebaseDb(app);
+    const app = firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
     
     // Set live indicators
     document.getElementById('livePing').classList.remove('hidden');
     document.getElementById('liveDot').classList.replace('bg-slate-500', 'bg-green-500');
 
-    window.dbOnValue(window.dbRef(db, `sessions/${sessionId}/savedMatches`), (snapshot) => {
+    db.ref(`sessions/${sessionId}/savedMatches`).on('value', (snapshot) => {
       const data = snapshot.val();
       savedMatches = data || [];
       processData();
