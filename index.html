@@ -380,40 +380,6 @@ function startTimer() {
   }, 1000);
 }
 
-function pauseTimer() {
-  timerRunning = false;
-  clearInterval(timerInterval);
-}
-
-function resetTimer() {
-  pauseTimer();
-  timerSeconds = 600;
-  updateTimerDisplay();
-}
-
-function openTimerEdit() {
-  pauseTimer();
-  const area = document.getElementById('timerEditArea');
-  area.classList.remove('hidden');
-  area.classList.add('flex');
-  document.getElementById('editMin').value = Math.floor(timerSeconds/60);
-  document.getElementById('editSec').value = timerSeconds % 60;
-}
-
-function closeTimerEdit() {
-  const area = document.getElementById('timerEditArea');
-  area.classList.add('hidden');
-  area.classList.remove('flex');
-}
-
-function applyTimerEdit() {
-  const m = parseInt(document.getElementById('editMin').value) || 0;
-  const s = parseInt(document.getElementById('editSec').value) || 0;
-  timerSeconds = Math.max(0, m * 60 + s);
-  updateTimerDisplay();
-  closeTimerEdit();
-}
-
 // ===== ROSTER IMPORT =====
 document.getElementById('rosterFile').addEventListener('change', function(e) {
   const file = e.target.files[0];
@@ -423,7 +389,25 @@ document.getElementById('rosterFile').addEventListener('change', function(e) {
     const content = ev.target.result;
     if (file.name.endsWith('.json')) {
       try {
-        teamsDB = JSON.parse(content);
+        let parsed = JSON.parse(content);
+        // Se è un array di tipo [{name: "Squadra", players: ["P1", "P2"]}, ...] convertiamolo nel formato corretto
+        if (Array.isArray(parsed)) {
+          const converted = {};
+          parsed.forEach(t => {
+            if (t.name && Array.isArray(t.players)) {
+              converted[t.name] = t.players;
+            } else if (t.team && Array.isArray(t.players)) {
+              converted[t.team] = t.players;
+            }
+          });
+          parsed = converted;
+        }
+        
+        if (Object.keys(parsed).length === 0 || typeof parsed !== 'object') {
+          throw new Error("Il formato del roster JSON non è valido.");
+        }
+        
+        teamsDB = parsed;
         populateTeamSelects();
         syncTeamsDB();
         alert('✅ Roster importato con successo!');
@@ -437,19 +421,28 @@ document.getElementById('rosterFile').addEventListener('change', function(e) {
 });
 
 function parseCSVRoster(csv) {
-  // Expected format: TeamName,Player1,Player2,...
+  // Rimuove eventuali ritorni a capo di Windows \r e separa per linea
+  const lines = csv.replace(/\r/g, '').trim().split('\n');
   teamsDB = {};
-  const lines = csv.trim().split('\n');
+  
   lines.forEach(line => {
-    const parts = line.split(',').map(s => s.trim());
+    // Rileva se si usa la virgola o il punto e virgola (Excel italiano)
+    const delimiter = line.includes(';') ? ';' : ',';
+    const parts = line.split(delimiter).map(s => s.trim()).filter(s => s !== '');
     if (parts.length >= 2) {
       const teamName = parts[0];
       teamsDB[teamName] = parts.slice(1);
     }
   });
+  
+  if (Object.keys(teamsDB).length === 0) {
+    alert("❌ Nessun dato valido trovato nel CSV. Controlla il formato.");
+    return;
+  }
+  
   populateTeamSelects();
   syncTeamsDB();
-  alert('✅ Roster CSV importato!');
+  alert('✅ Roster CSV importato con successo!');
 }
 
 function syncTeamsDB() {
